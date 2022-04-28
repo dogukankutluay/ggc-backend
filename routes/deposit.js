@@ -6,6 +6,7 @@ const {
   getDepositAddress,
   buyDepositAddress,
 } = require('../controller/deposit');
+
 router.use(isThereAUserAndFind);
 router
   .post('/', createDepositAddress)

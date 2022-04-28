@@ -9,6 +9,7 @@ const registerSchema = yup.object({
   email: yup.string().email().required(),
   phone: yup.string().max(10).min(10).required(),
   password: yup.string().required().max(15).min(8),
+  walletNo: yup.string().required(),
   passwordConfirmation: yup.string().oneOf([yup.ref('password'), null]),
 });
 const forgotPasswordSchema = yup.object({

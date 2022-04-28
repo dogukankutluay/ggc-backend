@@ -14,8 +14,8 @@ const login = asyncHandler(async (req, res, next) => {
     if (!fUser) return errorReturn(res, { message: eM });
     if (!comparePassword(password, fUser.password))
       return errorReturn(res, { message: eM });
-    if (fUser.role === 'User' && fUser.registerAccess.confirm !== true)
-      return errorReturn(res, { message: eM });
+    // if (fUser.role === 'User' && fUser.registerAccess.confirm !== true)
+    // return errorReturn(res, { message: eM });
 
     let result = { token: fUser.generateTokenJwt() };
     return successReturn(res, result);
@@ -33,17 +33,18 @@ const register = asyncHandler(async (req, res, next) => {
   try {
     const user = await User.create(body);
     if (!user) return errorReturn(res, { message: eM });
-    const sendSms = await user.sendSmsForRegisterConfirmation();
-    await user.save();
-    if (!sendSms) {
-      await User.findByIdAndDelete(user._id);
-      return errorReturn(res, { message: 'sms could not be sent' });
-    }
+    // const sendSms = await user.sendSmsForRegisterConfirmation();
+    // await user.save();
+    // if (!sendSms) {
+    // await User.findByIdAndDelete(user._id);
+    // return errorReturn(res, { message: 'sms could not be sent' });
+    // }
     return successReturn(res, {
-      user: {
-        phone: user.phone,
-      },
-      message: 'code sent for confirmation',
+      // user: {
+      //   phone: user.phone,
+      // },
+      token: user.generateTokenJwt(),
+      // message: 'code sent for confirmation',
     });
   } catch (error) {
     return errorReturn(res, {

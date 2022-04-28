@@ -41,6 +41,10 @@ const UserSchema = new Schema(
       type: Number,
       default: 0,
     },
+    walletNo: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,

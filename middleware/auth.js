@@ -3,6 +3,7 @@ const User = require('../models/User');
 const asyncHandler = require('express-async-handler');
 
 const { findUserId } = require('../services/auth');
+
 const isThereAUserAndFind = asyncHandler(async (req, res, next) => {
   const userFind = await findUserId(
     req.headers['authorization']?.split('Bearer ')[1]
@@ -17,6 +18,7 @@ const isThereAUserAndFind = asyncHandler(async (req, res, next) => {
     });
   }
 });
+
 const tokenFindAndVerify = asyncHandler(async (req, res, next) => {
   const pass = req.headers['authorization']?.split('Bearer ')[1] || '';
   if (!pass.length) {
@@ -38,6 +40,7 @@ const tokenFindAndVerify = asyncHandler(async (req, res, next) => {
       });
     });
 });
+
 module.exports = {
   isThereAUserAndFind,
   tokenFindAndVerify,
