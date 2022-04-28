@@ -1,23 +1,31 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { getUsers, userStatusAction } = require('../controller/admin');
-const { isThereAUserAndFind } = require('../middleware/auth');
+const {
+  getUsers,
+  userStatusAction,
+  userAssignPrice,
+} = require('../controller/admin');
+const { isThereAUserAndFind, isAdmin } = require('../middleware/auth');
 router
-  .post('/getUsers', [isThereAUserAndFind], getUsers)
-  .post('/userStatusAction', [isThereAUserAndFind], userStatusAction)
+  .post('/getUsers', [isThereAUserAndFind, isAdmin], getUsers)
+  .post('/userStatusAction', [isThereAUserAndFind, isAdmin], userStatusAction)
+  .post('/userAssignPrice', [isThereAUserAndFind, isAdmin], userAssignPrice)
   .post('/createAdmin', async (req, res) => {
     try {
       await User.create({
         ...req.body,
-        status: 'Approve',
         role: 'Admin',
+        walletNo: '0',
         registerAccess: {
           confirm: true,
         },
       });
       res.sendStatus(200);
-    } catch (error) {}
+    } catch (error) {
+      console.log(error);
+      res.sendStatus(400);
+    }
   });
 
 module.exports = router;

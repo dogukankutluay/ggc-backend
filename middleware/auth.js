@@ -18,6 +18,13 @@ const isThereAUserAndFind = asyncHandler(async (req, res, next) => {
     });
   }
 });
+const isAdmin = asyncHandler(async (req, res, next) => {
+  const { user } = req;
+  if (user.role !== 'Admin') {
+    return errorReturn(res, { message: 'auth error' });
+  }
+  next();
+});
 
 const tokenFindAndVerify = asyncHandler(async (req, res, next) => {
   const pass = req.headers['authorization']?.split('Bearer ')[1] || '';
@@ -44,4 +51,5 @@ const tokenFindAndVerify = asyncHandler(async (req, res, next) => {
 module.exports = {
   isThereAUserAndFind,
   tokenFindAndVerify,
+  isAdmin,
 };
