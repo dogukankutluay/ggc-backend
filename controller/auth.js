@@ -92,8 +92,8 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   try {
     const fUser = await User.findOne({ email });
     if (!fUser) return errorReturn(res, { message: eM });
-    // if (fUser?.forgotPassword?.confirm === false)
-    //  return errorReturn(res, { message: 'there is already an email sent' });
+    if (fUser?.forgotPassword?.confirm === false)
+     return errorReturn(res, { message: 'there is already an email sent' });
     const code = makeId(6);
     const changePasswordUrl = `http://localhost:3000/auth/reset?code=${code}`;
     const emailTemplate = `
@@ -198,6 +198,7 @@ const changePassword = asyncHandler(async (req, res, next) => {
 
     if (!fUser) return errorReturn(res, { message: eM });
     fUser.forgotPassword.code = '';
+    fUser.forgotPassword.confirm=true;
     fUser.password = password;
     await fUser.save();
     return successReturn(res, {});
