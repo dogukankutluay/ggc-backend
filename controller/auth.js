@@ -72,7 +72,10 @@ const confirmEmail = asyncHandler(async (req, res, next) => {
     userFind.confirmEmailExpire = undefined;
     await userFind.save();
 
-    return res.send('E-Mail Onaylandı');
+    return successReturn(res, {
+      message: 'Email onaylandı',
+      token: userFind.generateTokenJwt(),
+    });
   } catch (error) {
     console.log(error);
     return errorReturn(res, {
