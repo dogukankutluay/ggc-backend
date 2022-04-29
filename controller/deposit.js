@@ -34,11 +34,11 @@ const buyDepositAddress = asyncHandler(async (req, res, next) => {
   const { user } = req;
   try {
     const numberController =
-      !Number.isInteger(usdt) || !Number.isInteger(ggcPrice);
-    const zeroController = usdt <= 0 || ggcPrice <= 0;
-    if (numberController || zeroController) {
+      Number(usdt)===usdt && Number(ggcPrice)===ggcPrice&&(usdt&&ggcPrice);
+      if(!numberController)
       return errorReturn(res, { message: 'usdt and ggcPrice cannot be empty' });
-    }
+   
+    
     let ownerUser = await User.findOne({ _id: user._id });
     if (ownerUser.usdtBalance < usdt) {
       return errorReturn(res, { message: 'insufficient balance' });
