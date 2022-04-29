@@ -107,4 +107,5 @@ UserSchema.methods.sendSmsForForgotPasswordConfirmation = function () {
   this.forgotPassword.code = code;
   return result;
 };
+
 module.exports = mongoose.model('User', UserSchema);

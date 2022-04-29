@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const axios = require('axios');
 const qs = require('qs');
+const {makeId} =require('../helpers/makeId');
 const sendEmail = require('../services/sendEmail');
 const { successReturn, errorReturn } = require('../helpers/CustomReturn');
 const { comparePassword } = require('../helpers/inputController');
@@ -87,22 +88,54 @@ const confirmEmail = asyncHandler(async (req, res, next) => {
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.query;
   let eM = 'not found user';
+
   try {
     const fUser = await User.findOne({ email });
     if (!fUser) return errorReturn(res, { message: eM });
-    if (fUser?.forgotPassword?.confirm === false)
-      return errorReturn(res, { message: 'there is already an sms sent' });
-    const sendSms = fUser.sendSmsForForgotPasswordConfirmation();
-    if (!sendSms) return errorReturn(res, { message: 'sms could not be sent' });
+    // if (fUser?.forgotPassword?.confirm === false)
+    //  return errorReturn(res, { message: 'there is already an email sent' });
+    const code = makeId(6);
+    const changePasswordUrl = `http://localhost:3000/auth/reset?code=${code}`;
+    const emailTemplate = `
+    <h3>Şifre değişikliği</h3>
+    <p>Bu  <a href="${changePasswordUrl}" target='_blank'>link</a> ile şifrenizi sıfırlayabilirsiniz.</p>
+    <p>Onay süresi 3 gündür.</p>
+`;
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: fUser.email,
+      subject: 'Şifre değişikliği',
+      html: emailTemplate,
+    };
+    await sendEmail({
+      mailOptions,
+    }).catch(()=> errorReturn(res, { message: 'Mail could not be sent' }));
+    fUser.forgotPassword.confirm=false;
+    fUser.forgotPassword.code=code;
     await fUser.save();
     return successReturn(res, {
-      user: { phone: fUser.phone, email: fUser.email },
-    });
+           message:"mail has been sent" },
+        );
   } catch (error) {
     return errorReturn(res, {
-      error: error || error.message,
-    });
+           error: error || error.message,
+        });
   }
+  // try {
+  //   if (!fUser) return errorReturn(res, { message: eM });
+  //   if (fUser?.forgotPassword?.confirm === false)
+  //     return errorReturn(res, { message: 'there is already an sms sent' });
+  //   const sendSms = fUser.sendSmsForForgotPasswordConfirmation();
+  //   if (!sendSms) return errorReturn(res, { message: 'sms could not be sent' });
+  //   await fUser.save();
+  //   return successReturn(res, {
+  //     user: { phone: fUser.phone, email: fUser.email },
+  //   });
+  // } catch (error) {
+  //   return errorReturn(res, {
+  //     error: error || error.message,
+  //   });
+  // }
 });
 const getProfile = asyncHandler(async (req, res, next) => {
   const { user } = req;
