@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { makeId } = require('../helpers/makeId');
 const sendSms = require('../services/sendSms');
 const Schema = mongoose.Schema;
@@ -45,6 +46,9 @@ const UserSchema = new Schema(
       type: String,
       required: true,
     },
+    isConfirmedEmail: { type: Boolean, default: false },
+    confirmEmailToken: { type: String },
+    confirmEmailExpire: { type: Date },
   },
   {
     timestamps: true,
@@ -76,6 +80,17 @@ UserSchema.methods.generateTokenJwt = function () {
     algorithm: 'HS256',
   });
   return token;
+};
+UserSchema.methods.getSendEmailTokenFromUser = function () {
+  const { CONFIRM_EMAIL_EXPIRE } = process.env;
+  const randomHexString = crypto.randomBytes(15).toString('hex');
+  const confirmEmailToken = crypto
+    .createHash('SHA256')
+    .update(randomHexString)
+    .digest('hex');
+  this.confirmEmailToken = confirmEmailToken;
+  this.confirmEmailExpire = Date.now() + parseInt(CONFIRM_EMAIL_EXPIRE);
+  return confirmEmailToken;
 };
 UserSchema.methods.sendSmsForRegisterConfirmation = function () {
   const code = makeId(6);

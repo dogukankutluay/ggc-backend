@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const axios = require('axios');
 const qs = require('qs');
+const sendEmail = require('../services/sendEmail');
 const { successReturn, errorReturn } = require('../helpers/CustomReturn');
 const { comparePassword } = require('../helpers/inputController');
 const login = asyncHandler(async (req, res, next) => {
@@ -11,17 +12,16 @@ const login = asyncHandler(async (req, res, next) => {
   let eM = 'not found user';
   try {
     const fUser = await User.findOne(fIn);
+
     if (!fUser) return errorReturn(res, { message: eM });
+    if (!fUser.isConfirmedEmail && fUser.role === 'User')
+      return errorReturn(res, { message: 'email not confirmed' });
     if (!comparePassword(password, fUser.password))
       return errorReturn(res, { message: eM });
-    // if (fUser.role === 'User' && fUser.registerAccess.confirm !== true)
-    // return errorReturn(res, { message: eM });
 
     let result = { token: fUser.generateTokenJwt() };
     return successReturn(res, result);
   } catch (error) {
-    console.log(error);
-
     return errorReturn(res, {
       error: error || eM,
     });
@@ -33,22 +33,51 @@ const register = asyncHandler(async (req, res, next) => {
   try {
     const user = await User.create(body);
     if (!user) return errorReturn(res, { message: eM });
-    // const sendSms = await user.sendSmsForRegisterConfirmation();
-    // await user.save();
-    // if (!sendSms) {
-    // await User.findByIdAndDelete(user._id);
-    // return errorReturn(res, { message: 'sms could not be sent' });
-    // }
-    return successReturn(res, {
-      // user: {
-      //   phone: user.phone,
-      // },
-      token: user.generateTokenJwt(),
-      // message: 'code sent for confirmation',
+    const confirmEmailToken = user.getSendEmailTokenFromUser();
+    await user.save();
+    const confirmEmailUrl = `http://localhost:3000/auth/success?token=${confirmEmailToken}`;
+    const emailTemplate = `
+          <h3>E-Mail'inizi onaylayınız</h3>
+          <p>Bu  <a href="${confirmEmailUrl}" target='_blank'>link</a> ile E-maili'nizi onaylayabilirsiniz.</p>
+          <p>Onay süresi 3 gündür.</p>
+      `;
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: user.email,
+      subject: 'E-mail Onaylama',
+      html: emailTemplate,
+    };
+    await sendEmail({
+      mailOptions,
     });
+
+    return successReturn(res, {});
   } catch (error) {
     return errorReturn(res, {
       error: error || eM,
+    });
+  }
+});
+const confirmEmail = asyncHandler(async (req, res, next) => {
+  const { confirmEmailToken } = req.query;
+
+  try {
+    let userFind = await User.findOne({
+      confirmEmailToken,
+      confirmEmailExpire: { $gt: Date.now() },
+    });
+    if (!userFind) return errorReturn(res, { message: 'not found user' });
+    userFind.isConfirmedEmail = true;
+    userFind.confirmEmailToken = undefined;
+    userFind.confirmEmailExpire = undefined;
+    await userFind.save();
+
+    return res.send('E-Mail Onaylandı');
+  } catch (error) {
+    console.log(error);
+    return errorReturn(res, {
+      error: 'E-Mail Onaylanamadı',
+      message: error,
     });
   }
 });
@@ -152,4 +181,5 @@ module.exports = {
   confirmForgotPassword,
   changePassword,
   getProfile,
+  confirmEmail,
 };

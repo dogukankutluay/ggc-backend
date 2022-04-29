@@ -9,6 +9,7 @@ const {
   confirmForgotPassword,
   changePassword,
   getProfile,
+  confirmEmail,
 } = require('../controller/auth');
 const { isThereAUserAndFind } = require('../middleware/auth');
 const {
@@ -26,6 +27,7 @@ const {
 router
   .post('/login', globalValidateBody(loginSchema), login)
   .post('/register', globalValidateBody(registerSchema), register)
+  .get('/confirmEmail', confirmEmail)
   .post(
     '/changePassword',
     globalValidateBody(changePasswordSchema),
