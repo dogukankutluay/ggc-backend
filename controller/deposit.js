@@ -44,7 +44,7 @@ const buyDepositAddress = asyncHandler(async (req, res, next) => {
       return errorReturn(res, { message: 'insufficient balance' });
     }
     ownerUser.usdtBalance -= usdt;
-    ownerUser.tokenBalance += usdt * ggcPrice;
+    ownerUser.tokenBalance += usdt / ggcPrice;
     await ownerUser.save();
     return successReturn(res, {});
   } catch (error) {
