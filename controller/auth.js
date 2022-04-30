@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const axios = require('axios');
 const qs = require('qs');
-const {makeId} =require('../helpers/makeId');
+const { makeId } = require('../helpers/makeId');
 const sendEmail = require('../services/sendEmail');
 const { successReturn, errorReturn } = require('../helpers/CustomReturn');
 const { comparePassword } = require('../helpers/inputController');
@@ -32,6 +32,9 @@ const register = asyncHandler(async (req, res, next) => {
   const body = req.body;
   const eM = 'was a problem creating the user';
   try {
+    const findEmail = await User.findOne({ email: body.email });
+    if (findEmail)
+      return errorReturn(res, { message: 'This email is being used' });
     const user = await User.create(body);
     if (!user) return errorReturn(res, { message: eM });
     const confirmEmailToken = user.getSendEmailTokenFromUser();
@@ -167,7 +170,7 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     const fUser = await User.findOne({ email });
     if (!fUser) return errorReturn(res, { message: eM });
     if (fUser?.forgotPassword?.confirm === false)
-     return errorReturn(res, { message: 'there is already an email sent' });
+      return errorReturn(res, { message: 'there is already an email sent' });
     const code = makeId(6);
     const changePasswordUrl = `https://ggc-coin-git-main-bekir-akok.vercel.app/auth/reset?code=${code}`;
     const emailTemplate = `
@@ -256,17 +259,17 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     };
     await sendEmail({
       mailOptions,
-    }).catch(()=> errorReturn(res, { message: 'Mail could not be sent' }));
-    fUser.forgotPassword.confirm=false;
-    fUser.forgotPassword.code=code;
+    }).catch(() => errorReturn(res, { message: 'Mail could not be sent' }));
+    fUser.forgotPassword.confirm = false;
+    fUser.forgotPassword.code = code;
     await fUser.save();
     return successReturn(res, {
-           message:"mail has been sent" },
-        );
+      message: 'mail has been sent',
+    });
   } catch (error) {
     return errorReturn(res, {
-           error: error || error.message,
-        });
+      error: error || error.message,
+    });
   }
   // try {
   //   if (!fUser) return errorReturn(res, { message: eM });
@@ -345,7 +348,7 @@ const changePassword = asyncHandler(async (req, res, next) => {
 
     if (!fUser) return errorReturn(res, { message: eM });
     fUser.forgotPassword.code = '';
-    fUser.forgotPassword.confirm=true;
+    fUser.forgotPassword.confirm = true;
     fUser.password = password;
     await fUser.save();
     return successReturn(res, {});

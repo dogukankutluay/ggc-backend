@@ -10,6 +10,7 @@ const UserSchema = new Schema(
     surname: String,
     email: {
       type: String,
+      unique: [true, 'Bu email kullanılmakta'],
     },
     phone: {
       type: String,
