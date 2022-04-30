@@ -67,7 +67,14 @@ const register = asyncHandler(async (req, res, next) => {
                         <tr>
                             <td style="text-align:center;">
                               <a href="https://ggcm.io" title="logo" target="_blank">
-                                <img width="60" height="60" src="https://i.hizliresim.com/5q96wbc.png" title="logo" alt="logo">
+                                 <img
+      width="170"
+      style="object-fit: contain"
+      height="50"
+      src="https://i.hizliresim.com/5q96wbc.png"
+      title="logo"
+      alt="logo"
+    />
                               </a>
                             </td>
                         </tr>
