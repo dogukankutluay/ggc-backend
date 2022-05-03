@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
-const { makeId } = require('../helpers/makeId');
-const sendSms = require('../services/sendSms');
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const { makeId } = require("../helpers/makeId");
+const sendSms = require("../services/sendSms");
 const Schema = mongoose.Schema;
 const UserSchema = new Schema(
   {
@@ -10,7 +10,7 @@ const UserSchema = new Schema(
     surname: String,
     email: {
       type: String,
-      unique: [true, 'Bu email kullanılmakta'],
+      unique: [true, "Bu email kullanılmakta"],
     },
     phone: {
       type: String,
@@ -19,8 +19,8 @@ const UserSchema = new Schema(
     password: String,
     role: {
       type: String,
-      default: 'User',
-      enum: ['User', 'Admin'],
+      default: "User",
+      enum: ["User", "Admin"],
     },
     registerAccess: {
       confirm: {
@@ -43,10 +43,6 @@ const UserSchema = new Schema(
       type: Number,
       default: 0,
     },
-    walletNo: {
-      type: String,
-      required: true,
-    },
     isConfirmedEmail: { type: Boolean, default: false },
     confirmEmailToken: { type: String },
     confirmEmailExpire: { type: Date },
@@ -56,8 +52,8 @@ const UserSchema = new Schema(
   }
 );
 
-UserSchema.pre('save', function (next) {
-  if (!this.isModified('password')) {
+UserSchema.pre("save", function (next) {
+  if (!this.isModified("password")) {
     next();
   }
   bcrypt.genSalt(10, (err, salt) => {
@@ -70,7 +66,7 @@ UserSchema.pre('save', function (next) {
   });
 });
 UserSchema.methods.generateTokenJwt = function () {
-  const jwtToken = require('jsonwebtoken');
+  const jwtToken = require("jsonwebtoken");
   const { JWT_SECRET, JWT_EXPIRE } = process.env;
   const payloud = {
     _id: this._id,
@@ -78,17 +74,17 @@ UserSchema.methods.generateTokenJwt = function () {
   };
   const token = jwtToken.sign(payloud, JWT_SECRET, {
     expiresIn: JWT_EXPIRE,
-    algorithm: 'HS256',
+    algorithm: "HS256",
   });
   return token;
 };
 UserSchema.methods.getSendEmailTokenFromUser = function () {
   const { CONFIRM_EMAIL_EXPIRE } = process.env;
-  const randomHexString = crypto.randomBytes(15).toString('hex');
+  const randomHexString = crypto.randomBytes(15).toString("hex");
   const confirmEmailToken = crypto
-    .createHash('SHA256')
+    .createHash("SHA256")
     .update(randomHexString)
-    .digest('hex');
+    .digest("hex");
   this.confirmEmailToken = confirmEmailToken;
   this.confirmEmailExpire = Date.now() + parseInt(CONFIRM_EMAIL_EXPIRE);
   return confirmEmailToken;
@@ -109,4 +105,4 @@ UserSchema.methods.sendSmsForForgotPasswordConfirmation = function () {
   return result;
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model("User", UserSchema);

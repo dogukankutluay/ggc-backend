@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "nodemon server.js",
     "dev": "nodemon server.js"
   },
   "author": "",
@@ -23,7 +23,11 @@
     "nodemailer": "^6.7.3",
     "qs": "^6.10.3",
     "query-string": "^7.1.1",
+    "tron-create-address": "^0.1.10",
     "verimor-node-sdk": "^0.1.1",
     "yup": "^0.32.11"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.16"
   }
 }

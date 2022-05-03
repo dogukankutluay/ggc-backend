@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const DepositSchema = new Schema(
   {
     userId: {
       type: mongoose.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
     },
     usdt: {
       type: Number,
@@ -15,10 +15,15 @@ const DepositSchema = new Schema(
       required: true,
       unique: true,
     },
+    privateKey: {
+      type: String,
+      required: true,
+      unique: true,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-module.exports = mongoose.model('Deposit', DepositSchema);
+module.exports = mongoose.model("Deposit", DepositSchema);
