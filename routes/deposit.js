@@ -11,7 +11,7 @@ const {
 router.use(isThereAUserAndFind);
 router
   .post('/', createDepositAddress)
-  .get('/:param', getDepositAddress)
+  .get('/:param?', getDepositAddress)
   .put('/', buyDepositAddress)
   .get('/check', checkDepositAdress);
 module.exports = router;

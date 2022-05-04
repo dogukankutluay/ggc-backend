@@ -17,12 +17,12 @@ const BASE_URL = process.env.TRON_URL;
 const getDepositAddress = asyncHandler(async (req, res, next) => {
   const { user } = req;
   const { param } = req.params;
-
   try {
-    if (param === 'log') {
+    if (param && param === 'log') {
       const logs = await Log.find({ userId: user._id }).select('-userId');
       return successReturn(res, { logs });
     }
+    console.log('asd');
     const deposits = await Deposit.find({ userId: user._id }).select('-userId');
     return successReturn(res, { deposits });
   } catch (error) {
