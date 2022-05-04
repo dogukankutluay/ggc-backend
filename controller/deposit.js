@@ -1,22 +1,29 @@
-const asyncHandler = require("express-async-handler");
-const { generateAccount } = require("tron-create-address");
-const axios = require("axios");
-const dotenv = require("dotenv");
-const Deposit = require("../models/Deposit");
-const User = require("../models/User");
-const Payment = require("../models/Payment");
-const { successReturn, errorReturn } = require("../helpers/CustomReturn");
+const asyncHandler = require('express-async-handler');
+const { generateAccount } = require('tron-create-address');
+const axios = require('axios');
+const dotenv = require('dotenv');
+const Deposit = require('../models/Deposit');
+const User = require('../models/User');
+const Payment = require('../models/Payment');
+const Log = require('../models/Log');
+const { successReturn, errorReturn } = require('../helpers/CustomReturn');
 
 dotenv.config({
-  path: "./config/env/config.env",
+  path: './config/env/config.env',
 });
 
 const BASE_URL = process.env.TRON_URL;
 
 const getDepositAddress = asyncHandler(async (req, res, next) => {
   const { user } = req;
+  const { param } = req.params;
+
   try {
-    const deposits = await Deposit.find({ userId: user._id }).select("-userId");
+    if (param === 'log') {
+      const logs = await Log.find({ userId: user._id }).select('-userId');
+      return successReturn(res, { logs });
+    }
+    const deposits = await Deposit.find({ userId: user._id }).select('-userId');
     return successReturn(res, { deposits });
   } catch (error) {
     return errorReturn(res, {
@@ -36,7 +43,7 @@ const createDepositAddress = asyncHandler(async (req, res, next) => {
     //users can only have one account
     const deposit = await Deposit.findOne({ userId: user._id });
     if (deposit) {
-      errorReturn(res, { error: "Address already exist" });
+      errorReturn(res, { error: 'Address already exist' });
     } else {
       const create = await Deposit.create({
         ...body,
@@ -64,15 +71,25 @@ const buyDepositAddress = asyncHandler(async (req, res, next) => {
       usdt &&
       ggcPrice;
     if (!numberController)
-      return errorReturn(res, { message: "usdt and ggcPrice cannot be empty" });
+      return errorReturn(res, { message: 'usdt and ggcPrice cannot be empty' });
 
     let ownerUser = await User.findOne({ _id: user._id });
     if (ownerUser.usdtBalance < usdt) {
-      return errorReturn(res, { message: "insufficient balance" });
+      return errorReturn(res, { message: 'insufficient balance' });
     }
+
     ownerUser.usdtBalance -= usdt;
     ownerUser.tokenBalance += usdt / ggcPrice;
+
     await ownerUser.save();
+
+    await Log.create({
+      userId: user._id,
+      usdt,
+      ggc: usdt / ggcPrice,
+      ggcPrice,
+    });
+
     return successReturn(res, {});
   } catch (error) {
     return errorReturn(res, {
@@ -87,11 +104,11 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
   } = req;
   //helper func
   function numberWithCommas(x) {
-    return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."));
+    return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
   }
 
   try {
-    const deposits = await Deposit.find({ userId: _id }).select("-userId");
+    const deposits = await Deposit.find({ userId: _id }).select('-userId');
 
     //address control with tronscan
     const { data } = await axios.get(`${BASE_URL}${deposits[0]?.address}`);
