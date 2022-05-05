@@ -13,5 +13,5 @@ router
   .post('/', createDepositAddress)
   .get('/:param?', getDepositAddress)
   .put('/', buyDepositAddress)
-  .get('/check', checkDepositAdress);
+  .get('/check/address', checkDepositAdress);
 module.exports = router;
