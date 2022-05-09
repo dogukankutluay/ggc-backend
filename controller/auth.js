@@ -138,6 +138,9 @@ const register = asyncHandler(async (req, res, next) => {
 
     return successReturn(res, {});
   } catch (error) {
+    if (error?.responseCode === 554) {
+      return successReturn(res, {});
+    }
     return errorReturn(res, {
       error: error || eM,
     });
