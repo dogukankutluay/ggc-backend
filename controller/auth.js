@@ -39,7 +39,7 @@ const register = asyncHandler(async (req, res, next) => {
     if (!user) return errorReturn(res, { message: eM });
     const confirmEmailToken = user.getSendEmailTokenFromUser();
     await user.save();
-    const confirmEmailUrl = `https://ggc-coin-git-main-bekir-akok.vercel.app/auth/success?token=${confirmEmailToken}`;
+    const confirmEmailUrl = `https://dashboard.ggcm.io/auth/success?token=${confirmEmailToken}`;
     const emailTemplate = `
     <!doctype html>
     <html lang="en-US">
@@ -179,7 +179,7 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     if (fUser?.forgotPassword?.confirm === false)
       return errorReturn(res, { message: 'there is already an email sent' });
     const code = makeId(6);
-    const changePasswordUrl = `https://ggc-coin-git-main-bekir-akok.vercel.app/auth/reset?code=${code}`;
+    const changePasswordUrl = `https://dashboard.ggcm.io//auth/reset?code=${code}`;
     const emailTemplate = `
     <!doctype html>
     <html lang="en-US">
