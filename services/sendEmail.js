@@ -7,6 +7,6 @@ const sendEmail = async ({ mailOptions, next }) => {
       pass: process.env.SMTP_PASS,
     },
   });
-  return await tranporter.sendMail(mailOptions);
+  await tranporter.sendMail(mailOptions);
 };
 module.exports = sendEmail;
