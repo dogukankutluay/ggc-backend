@@ -138,7 +138,8 @@ const register = asyncHandler(async (req, res, next) => {
 
     return successReturn(res, {});
   } catch (error) {
-    if (error?.responseCode === 554) {
+    await User.findOneAndDelete({ email: body?.email });
+    if (error?.responseCode) {
       return successReturn(res, {});
     }
     return errorReturn(res, {
