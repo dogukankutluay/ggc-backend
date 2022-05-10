@@ -6,9 +6,6 @@ const sendEmail = async ({ mailOptions, next }) => {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    port: 587,
-    secure: false,
-    host: 'smtp.gmail.com',
   });
   return await tranporter.sendMail(mailOptions);
 };
