@@ -3,9 +3,12 @@ const { generateAccount } = require('tron-create-address');
 const axios = require('axios');
 const dotenv = require('dotenv');
 const Deposit = require('../models/Deposit');
+const DepositBnb = require('../models/BNB/DepositBnb');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const Log = require('../models/Log');
+const Web3 = require('web3');
+
 const { successReturn, errorReturn } = require('../helpers/CustomReturn');
 
 dotenv.config({
@@ -22,9 +25,10 @@ const getDepositAddress = asyncHandler(async (req, res, next) => {
       const logs = await Log.find({ userId: user._id }).select('-userId');
       return successReturn(res, { logs });
     }
-    console.log('asd');
-    const deposits = await Deposit.find({ userId: user._id }).select('-userId');
-    return successReturn(res, { deposits });
+
+    const trcs = await Deposit.find({ userId: user._id }).select('-userId');
+    const bnbs = await DepositBnb.find({ userId: user._id }).select('-userId');
+    return successReturn(res, { deposits: { trcs, bnbs } });
   } catch (error) {
     return errorReturn(res, {
       error: error || error.message,
@@ -36,26 +40,57 @@ const createDepositAddress = asyncHandler(async (req, res, next) => {
   const body = { ...req.body, userId: user._id };
 
   try {
-    //create new account
-    const { address, privateKey } = generateAccount();
-    const owner = await User.findOne({ _id: user._id });
+    if (!body.coinName) return errorReturn(res, {});
 
-    //users can only have one account
-    const deposit = await Deposit.findOne({ userId: user._id });
-    if (deposit) {
-      errorReturn(res, { error: 'Address already exist' });
-    } else {
-      const create = await Deposit.create({
-        ...body,
-        address: address,
-        privateKey: privateKey,
-        usdt: owner.usdtBalance,
-      });
+    switch (body.coinName) {
+      case 'trc':
+        const { address, privateKey } = generateAccount();
+        const owner = await User.findOne({ _id: user._id });
+        const deposit = await Deposit.findOne({
+          userId: user._id,
+        });
+        if (deposit) {
+          errorReturn(res, { error: 'Address already exist' });
+        } else {
+          const create = await Deposit.create({
+            ...body,
+            address: address,
+            privateKey: privateKey,
+            usdt: owner.usdtBalance,
+            role: body.role,
+          });
 
-      return successReturn(res, { deposit: create });
+          return successReturn(res, { deposit: create });
+        }
+      case 'bnb':
+        {
+          const web3 = new Web3(
+            'https://data-seed-prebsc-1-s1.binance.org:8545'
+          );
+          const { address, privateKey } = web3.eth.accounts.create();
+          const owner = await User.findOne({ _id: user._id });
+          const deposit = await DepositBnb.findOne({
+            userId: user._id,
+          });
+          if (deposit) {
+            errorReturn(res, { error: 'Address already exist' });
+          } else {
+            const create = await DepositBnb.create({
+              ...body,
+              address: address,
+              privateKey: privateKey,
+              usdt: owner.usdtBalance,
+            });
+
+            return successReturn(res, { deposit: create });
+          }
+        }
+        break;
+
+      default:
+        break;
     }
   } catch (error) {
-    console.log(error);
     return errorReturn(res, {
       error: error || error.message,
     });
@@ -97,7 +132,6 @@ const buyDepositAddress = asyncHandler(async (req, res, next) => {
     });
   }
 });
-
 const checkDepositAdress = asyncHandler(async (req, res, next) => {
   const {
     user: { _id },
@@ -106,12 +140,16 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
   function numberWithCommas(x) {
     return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
   }
-
   try {
+    const test = await axios.get(
+      'https://api.bscscan.com/api?module=account&action=balancemulti&address=0xc83CBa50957365db810dC7C6E80646201F624878&blockno=2000000&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3'
+    );
+    console.log(test.data);
     const deposits = await Deposit.find({ userId: _id }).select('-userId');
 
     //address control with tronscan
     const { data } = await axios.get(`${BASE_URL}${deposits[0]?.address}`);
+
     if (data?.total > 1) {
       const owner = await User.findById({ _id });
       const payment = await Payment.findOne({ userId: _id });
@@ -157,7 +195,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
 
         return successReturn(res, {});
       }
-    }
+    } else return successReturn(res, {});
   } catch (err) {
     console.log(err);
   }

@@ -1,27 +1,59 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
-const axios = require('axios');
-const qs = require('qs');
+
 const { makeId } = require('../helpers/makeId');
 const sendEmail = require('../services/sendEmail');
+const emailTemplateHtml = require('./emailTemplate');
 const { successReturn, errorReturn } = require('../helpers/CustomReturn');
 const { comparePassword } = require('../helpers/inputController');
 const login = asyncHandler(async (req, res, next) => {
-  const { email, phone, password } = req.body;
+  const { email, phone, password, code } = req.body;
+  const queryFunction = req.query.function;
+  if (!queryFunction || !['step_one', 'step_two'].includes(queryFunction))
+    return errorReturn(res, { message: 'function required field in query ' });
   let fIn = {};
   email ? (fIn.email = email) : (fIn.phone = phone);
   let eM = 'not found user';
+
   try {
     const fUser = await User.findOne(fIn);
-
     if (!fUser) return errorReturn(res, { message: eM });
-    if (!fUser.isConfirmedEmail && fUser.role === 'User')
+    if (!fUser.isConfirmedEmail)
       return errorReturn(res, { message: 'email not confirmed' });
     if (!comparePassword(password, fUser.password))
       return errorReturn(res, { message: eM });
-
-    let result = { token: fUser.generateTokenJwt() };
-    return successReturn(res, result);
+    switch (queryFunction) {
+      case 'step_one':
+        const emailCode = makeId(6);
+        fUser.loginConfirmCode = emailCode;
+        await fUser.save();
+        const emailTemplate = emailTemplateHtml(
+          'Below is the code required for you to login.',
+          emailCode,
+          'Login Verification'
+        );
+        const mailOptions = {
+          from: process.env.SMTP_USER,
+          to: fUser.email,
+          subject: 'Login Verification',
+          html: emailTemplate,
+        };
+        await sendEmail({
+          mailOptions,
+        });
+        return successReturn(res, { message: 'code sent' });
+      case 'step_two':
+        if (!code || !code.length || fUser?.loginConfirmCode != code)
+          return errorReturn(res, { message: 'the code is wrong' });
+        fUser.loginConfirmCode = undefined;
+        await fUser.save();
+        let result = { token: fUser.generateTokenJwt() };
+        return successReturn(res, result);
+      default:
+        return errorReturn(res, {
+          message: eM,
+        });
+    }
   } catch (error) {
     return errorReturn(res, {
       error: error || eM,
@@ -37,95 +69,19 @@ const register = asyncHandler(async (req, res, next) => {
       return errorReturn(res, { message: 'This email is being used' });
     const user = await User.create(body);
     if (!user) return errorReturn(res, { message: eM });
-    const confirmEmailToken = user.getSendEmailTokenFromUser();
+    const emailCode = makeId(6);
+
+    const { CONFIRM_EMAIL_EXPIRE } = process.env;
+    user.confirmEmailToken = emailCode;
+    user.confirmEmailExpire = Date.now() + parseInt(CONFIRM_EMAIL_EXPIRE);
     await user.save();
-    const confirmEmailUrl = `https://dashboard.ggcm.io/auth/success?token=${confirmEmailToken}`;
-    const emailTemplate = `
-    <!doctype html>
-    <html lang="en-US">
-    
-    <head>
-        <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-        <title>Email Verification</title>
-        <meta name="description" content="Email Verification">
-        <style type="text/css">
-            a:hover {text-decoration: underline !important;}
-        </style>
-    </head>
-    
-    <body marginheight="0" topmargin="0" marginwidth="0" style="margin: 0px; background-color: #f2f3f8;" leftmargin="0">
-        <!--100% body table-->
-        <table cellspacing="0" border="0" cellpadding="0" width="100%" bgcolor="#f2f3f8"
-            style="@import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700); font-family: 'Open Sans', sans-serif;">
-            <tr>
-                <td>
-                    <table style="background-color: #f2f3f8; max-width:670px;  margin:0 auto;" width="100%" border="0"
-                        align="center" cellpadding="0" cellspacing="0">
-                        <tr>
-                            <td style="height:80px;">&nbsp;</td>
-                        </tr>
-                        <tr>
-                            <td style="text-align:center;">
-                              <a href="https://ggcm.io" title="logo" target="_blank">
-                                 <img
-      width="170"
-      style="object-fit: contain"
-      height="50"
-      src="https://i.hizliresim.com/5q96wbc.png"
-      title="logo"
-      alt="logo"
-    />
-                              </a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="height:20px;">&nbsp;</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <table width="95%" border="0" align="center" cellpadding="0" cellspacing="0"
-                                    style="max-width:670px;background:#fff; border-radius:3px; text-align:center;-webkit-box-shadow:0 6px 18px 0 rgba(0,0,0,.06);-moz-box-shadow:0 6px 18px 0 rgba(0,0,0,.06);box-shadow:0 6px 18px 0 rgba(0,0,0,.06);">
-                                    <tr>
-                                        <td style="height:40px;">&nbsp;</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding:0 35px;">
-                                            <h1 style="color:#1e1e2d; font-weight:500; margin:0;font-size:32px;font-family:'Rubik',sans-serif;">Email Verification Link</h1>
-                                            <span
-                                                style="display:inline-block; vertical-align:middle; margin:29px 0 26px; border-bottom:1px solid #cecece; width:100px;"></span>
-                                            <p style="color:#455056; font-size:15px;line-height:24px; margin:0;">
-                                                Here is the confirmation link for GGC.
-                                                In order to verify your email, click the link down below.
-                                            </p>
-                                            <a href="${confirmEmailUrl}"
-                                                style="background:#20e277;text-decoration:none !important; font-weight:500; margin-top:35px; color:#fff;text-transform:uppercase; font-size:14px;padding:10px 24px;display:inline-block;border-radius:50px;">Verify Email</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="height:40px;">&nbsp;</td>
-                                    </tr>
-                                </table>
-                            </td>
-                        <tr>
-                            <td style="height:20px;">&nbsp;</td>
-                        </tr>
-                        <tr>
-                            <td style="text-align:center;">
-                                <p style="font-size:14px; color:rgba(69, 80, 86, 0.7411764705882353); line-height:18px; margin:0 0 0;">&copy; <strong>www.ggcm.io</strong></p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="height:80px;">&nbsp;</td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-        <!--/100% body table-->
-    </body>
-    
-    </html>
-      `;
+
+    const emailTemplate = emailTemplateHtml(
+      ' Here is the confirmation link for GGC. You can use the code below to verify your email.',
+      emailCode,
+      'Email Verification'
+    );
+
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: user.email,

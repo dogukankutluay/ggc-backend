@@ -18,14 +18,18 @@
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
     "express-async-handler": "^1.2.0",
+    "install": "^0.13.0",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.3.1",
+    "node-mailjet": "^3.4.1",
     "nodemailer": "^6.7.3",
     "nodemailer-smtp-transport": "^2.7.4",
+    "npm": "^8.10.0",
     "qs": "^6.10.3",
     "query-string": "^7.1.1",
     "tron-create-address": "^0.1.10",
     "verimor-node-sdk": "^0.1.1",
+    "web3": "^1.7.3",
     "yup": "^0.32.11"
   },
   "devDependencies": {

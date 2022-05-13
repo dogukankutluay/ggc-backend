@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const DepositSchema = new Schema(
+const DepositBnbSchema = new Schema(
   {
     userId: {
       type: mongoose.Types.ObjectId,
@@ -26,4 +26,4 @@ const DepositSchema = new Schema(
   }
 );
 
-module.exports = mongoose.model('Deposit', DepositSchema);
+module.exports = mongoose.model('DepositBnb', DepositBnbSchema);

@@ -1,18 +1,26 @@
-const nodemailer = require('nodemailer');
-var smtpTransport = require('nodemailer-smtp-transport');
-
 const sendEmail = async ({ mailOptions, next }) => {
-  console.log(process.env.SMTP_USER);
-  console.log(process.env.SMTP_PASS);
-  let tranporter = nodemailer.createTransport(
-    smtpTransport({
-      service: 'Yandex',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    })
+  const mailjet = require('node-mailjet').connect(
+    'aec4db0980fce349c855efd463130226',
+    '42d48794e9231a0bd45a082b44d87cee'
   );
-  return await tranporter.sendMail(mailOptions);
+  const request = mailjet.post('send', { version: 'v3.1' }).request({
+    Messages: [
+      {
+        From: {
+          Email: 'noreply@ggcm.io',
+          Name: 'GGC',
+        },
+        To: [
+          {
+            Email: mailOptions.to,
+          },
+        ],
+        Subject: mailOptions.subject,
+        TextPart: '',
+        HTMLPart: mailOptions.html,
+      },
+    ],
+  });
+  return await request;
 };
 module.exports = sendEmail;

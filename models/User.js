@@ -46,6 +46,7 @@ const UserSchema = new Schema(
     isConfirmedEmail: { type: Boolean, default: false },
     confirmEmailToken: { type: String },
     confirmEmailExpire: { type: Date },
+    loginConfirmCode: String,
   },
   {
     timestamps: true,
