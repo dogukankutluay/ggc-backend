@@ -26,8 +26,12 @@ const getDepositAddress = asyncHandler(async (req, res, next) => {
       return successReturn(res, { logs });
     }
 
-    const trcs = await Deposit.find({ userId: user._id }).select('-userId');
-    const bnbs = await DepositBnb.find({ userId: user._id }).select('-userId');
+    let result = [];
+    const trcs = await Deposit.findOne({ userId: user._id }).select('-userId');
+    const bnbs = await DepositBnb.findOne({ userId: user._id }).select(
+      '-userId'
+    );
+
     return successReturn(res, { deposits: { trcs, bnbs } });
   } catch (error) {
     return errorReturn(res, {
