@@ -142,65 +142,99 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
     return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
   }
   try {
-    if (!req.query.coinName) return errorReturn(res, {});
+    {
+      const deposits = await Deposit.find({ userId: _id }).select('-userId');
 
-    const deposits = await Deposit.find({ userId: _id }).select('-userId');
+      const { data } = await axios.get(`${BASE_URL}${deposits[0]?.address}`);
 
-    //address control with tronscan
-    const { data } = await axios.get(`${BASE_URL}${deposits[0]?.address}`);
-    // require('axios')
-    //   .get(
-    //     'https://api.bscscan.com/api?module=account&action=txlist&address=0xc83CBa50957365db810dC7C6E80646201F624878&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3'
-    //   )
-    //   .then(a => console.log(a.data.result.map(d => numberWithCommas(d.value))));
-    if (data?.total > 1) {
-      const owner = await User.findById({ _id });
-      const payment = await Payment.findOne({ userId: _id });
-      const initialValue = owner.usdtBalance;
+      if (data?.total > 1) {
+        const owner = await User.findById({ _id });
+        const payment = await Payment.findOne({ userId: _id, coinName: 'trc' });
+        const initialValue = owner.usdtBalance;
 
-      //if payment alreay exist
-      if (!!payment) {
-        //filter unverified payment
-        const unverifiedPayment = data.data.filter(
-          (token, i) => token.tokenId !== payment.verified_payment[i]?.tokenId
-        );
+        if (!!payment) {
+          const unverifiedPayment = data.data.filter(
+            (token, i) => token.tokenId !== payment.verified_payment[i]?.tokenId
+          );
 
-        //reduce unverified payment + user usdtBalance
-        const total = unverifiedPayment.reduce(
-          (previousValue, currentValue) =>
-            previousValue + numberWithCommas(currentValue?.balance),
-          initialValue
-        );
-        //add total user usdt balance
-        owner.usdtBalance = total;
-        await owner.save();
+          const total = unverifiedPayment.reduce(
+            (previousValue, currentValue) =>
+              previousValue + numberWithCommas(currentValue?.balance),
+            initialValue
+          );
+          owner.usdtBalance = total;
+          await owner.save();
+          payment.verified_payment = data.data;
+          payment.coinName = 'trc';
+          await payment.save();
+        } else {
+          await Payment.create({
+            userId: _id,
+            verified_payment: data.data,
+            coinName: 'trc',
+          });
 
-        //update payments
-        payment.verified_payment = data.data;
-        await payment.save();
+          const total = data.data.reduce(
+            (previousValue, currentValue) =>
+              previousValue + numberWithCommas(currentValue?.balance),
+            initialValue
+          );
 
-        return successReturn(res, {});
-      } else {
-        //if payment doesnt exist
-        await Payment.create({
-          userId: _id,
-          verified_payment: data.data,
-        });
-
-        const total = data.data.reduce(
-          (previousValue, currentValue) =>
-            previousValue + numberWithCommas(currentValue?.balance),
-          initialValue
-        );
-
-        owner.usdtBalance = total;
-        await owner.save();
-
-        return successReturn(res, {});
+          owner.usdtBalance = total;
+          await owner.save();
+        }
       }
-    } else return successReturn(res, {});
+    }
+
+    {
+      const depositsBnb = await DepositBnb.find({ userId: _id }).select(
+        '-userId'
+      );
+      //0xc83CBa50957365db810dC7C6E80646201F624878
+      const { data } = await axios.get(
+        `https://api.bscscan.com/api?module=account&action=txlist&address=${depositsBnb[0]?.address}&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3`
+      );
+      if (data?.status == '1') {
+        const owner = await User.findById({ _id });
+        const payment = await Payment.findOne({ userId: _id, coinName: 'bnb' });
+        const initialValue = owner.usdtBalance;
+        if (!!payment) {
+          const unverifiedPayment = data.result.filter(
+            (token, i) => token.hash !== payment.verified_payment[i]?.hash
+          );
+
+          const total = unverifiedPayment.reduce(
+            (previousValue, currentValue) =>
+              previousValue + numberWithCommas(currentValue?.balance),
+            initialValue
+          );
+          owner.usdtBalance = total;
+          await owner.save();
+          payment.verified_payment = data.result;
+          payment.coinName = 'bnb';
+          await payment.save();
+        } else {
+          await Payment.create({
+            userId: _id,
+            verified_payment: data.result,
+            coinName: 'bnb',
+          });
+
+          const total = data.result.reduce(
+            (previousValue, currentValue) =>
+              previousValue + numberWithCommas(currentValue?.value),
+            initialValue
+          );
+
+          owner.usdtBalance = total;
+          await owner.save();
+        }
+      }
+    }
+    return successReturn(res, {});
   } catch (err) {
     console.log(err);
+    return errorReturn(res, { err });
   }
 });
 

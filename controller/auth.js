@@ -13,15 +13,15 @@ const login = asyncHandler(async (req, res, next) => {
     return errorReturn(res, { message: 'function required field in query ' });
   let fIn = {};
   email ? (fIn.email = email) : (fIn.phone = phone);
-  let eM = 'not found user';
+  let eM = 'User not found';
 
   try {
     const fUser = await User.findOne(fIn);
     if (!fUser) return errorReturn(res, { message: eM });
     if (!comparePassword(password, fUser.password))
-      return errorReturn(res, { message: 'email or password is incorrect' });
+      return errorReturn(res, { message: 'Email or password is incorrect' });
     if (!fUser.isConfirmedEmail)
-      return errorReturn(res, { message: 'email not confirmed' });
+      return errorReturn(res, { message: 'Email not confirmed' });
 
     switch (queryFunction) {
       case 'step_one':
