@@ -136,20 +136,23 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
   const {
     user: { _id },
   } = req;
+
   //helper func
   function numberWithCommas(x) {
     return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
   }
   try {
-    const test = await axios.get(
-      'https://api.bscscan.com/api?module=account&action=balancemulti&address=0xc83CBa50957365db810dC7C6E80646201F624878&blockno=2000000&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3'
-    );
-    console.log(test.data);
+    if (!req.query.coinName) return errorReturn(res, {});
+
     const deposits = await Deposit.find({ userId: _id }).select('-userId');
 
     //address control with tronscan
     const { data } = await axios.get(`${BASE_URL}${deposits[0]?.address}`);
-
+    // require('axios')
+    //   .get(
+    //     'https://api.bscscan.com/api?module=account&action=txlist&address=0xc83CBa50957365db810dC7C6E80646201F624878&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3'
+    //   )
+    //   .then(a => console.log(a.data.result.map(d => numberWithCommas(d.value))));
     if (data?.total > 1) {
       const owner = await User.findById({ _id });
       const payment = await Payment.findOne({ userId: _id });

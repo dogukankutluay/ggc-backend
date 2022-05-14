@@ -18,10 +18,11 @@ const login = asyncHandler(async (req, res, next) => {
   try {
     const fUser = await User.findOne(fIn);
     if (!fUser) return errorReturn(res, { message: eM });
+    if (!comparePassword(password, fUser.password))
+      return errorReturn(res, { message: 'email or password is incorrect' });
     if (!fUser.isConfirmedEmail)
       return errorReturn(res, { message: 'email not confirmed' });
-    if (!comparePassword(password, fUser.password))
-      return errorReturn(res, { message: eM });
+
     switch (queryFunction) {
       case 'step_one':
         const emailCode = makeId(6);
