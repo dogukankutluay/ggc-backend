@@ -88,7 +88,7 @@ const createDepositAddress = asyncHandler(async (req, res, next) => {
         break;
 
       default:
-        break;
+        return errorReturn(res);
     }
   } catch (error) {
     return errorReturn(res, {
