@@ -54,7 +54,7 @@ const createDepositAddress = asyncHandler(async (req, res, next) => {
           userId: user._id,
         });
         if (deposit) {
-          errorReturn(res, { error: 'Address already exist' });
+          return errorReturn(res, { error: 'Address already exist' });
         } else {
           const create = await Deposit.create({
             ...body,
@@ -77,7 +77,7 @@ const createDepositAddress = asyncHandler(async (req, res, next) => {
             userId: user._id,
           });
           if (deposit) {
-            errorReturn(res, { error: 'Address already exist' });
+            return errorReturn(res, { error: 'Address already exist' });
           } else {
             const create = await DepositBnb.create({
               ...body,
