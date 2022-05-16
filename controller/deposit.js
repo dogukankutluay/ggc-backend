@@ -145,6 +145,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
   function numberWithCommas(x) {
     return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
   }
+  await User.findByIdAndUpdate(_id, { usdtBalance: 0 });
   try {
     {
       const deposits = await Deposit.find({ userId: _id }).select('-userId');
@@ -166,6 +167,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
               previousValue + numberWithCommas(currentValue?.balance),
             initialValue
           );
+          console.log(total);
           owner.usdtBalance = total;
           await owner.save();
           payment.verified_payment = data.data;
@@ -215,6 +217,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
         const owner = await User.findById({ _id });
         const payment = await Payment.findOne({ userId: _id, coinName: 'bnb' });
         const initialValue = owner.usdtBalance + newAmount;
+        console.log(initialValue);
         if (!!payment) {
           // const unverifiedPayment = data.result.filter(
           //   (token, i) => token.hash !== payment.verified_payment[i]?.hash
