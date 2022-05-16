@@ -198,7 +198,18 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
       const { data } = await axios.get(
         `https://api.bscscan.com/api?module=account&action=txlist&address=${depositsBnb[0]?.address}&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3`
       );
-      if (data?.status == '1') {
+
+      if (data?.status === '1') {
+        const bnbs =
+          data.result.reduce((total, item) => {
+            return parseInt(item.value) + total;
+          }, 0) / 1000000000000000;
+
+        const { data: result } = await axios.get(
+          `https://api.coinlayer.com/convert?access_key=0446bd52d592a6f1580d10cd9f36f29d&from=BNB&to=USDT&amount=${bnbs}`
+        );
+        //çevirme işlemi sonucu
+        console.log(result);
         const owner = await User.findById({ _id });
         const payment = await Payment.findOne({ userId: _id, coinName: 'bnb' });
         const initialValue = owner.usdtBalance;
@@ -206,7 +217,6 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
           const unverifiedPayment = data.result.filter(
             (token, i) => token.hash !== payment.verified_payment[i]?.hash
           );
-
           const total = unverifiedPayment.reduce(
             (previousValue, currentValue) =>
               previousValue + numberWithCommas(currentValue?.balance),
