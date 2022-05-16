@@ -195,6 +195,9 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
         '-userId'
       );
       //0xc83CBa50957365db810dC7C6E80646201F624878
+      // const { data } = await axios.get(
+      //   `https://api.bscscan.com/api?module=account&action=txlist&address=0xc4E470B18Db30798acC51c392ee6329f96075E39&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3`
+      // );
       const { data } = await axios.get(
         `https://api.bscscan.com/api?module=account&action=txlist&address=${depositsBnb[0]?.address}&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3`
       );
@@ -203,26 +206,26 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
         const bnbs =
           data.result.reduce((total, item) => {
             return parseInt(item.value) + total;
-          }, 0) / 1000000000000000;
-
+          }, 0) / 1000000000000000000;
         const { data: result } = await axios.get(
           `https://api.coinlayer.com/convert?access_key=0446bd52d592a6f1580d10cd9f36f29d&from=BNB&to=USDT&amount=${bnbs}`
         );
         //çevirme işlemi sonucu
-        console.log(result);
+        const newAmount = numberWithCommas(result.result);
         const owner = await User.findById({ _id });
         const payment = await Payment.findOne({ userId: _id, coinName: 'bnb' });
-        const initialValue = owner.usdtBalance;
+        const initialValue = owner.usdtBalance + newAmount;
         if (!!payment) {
-          const unverifiedPayment = data.result.filter(
-            (token, i) => token.hash !== payment.verified_payment[i]?.hash
-          );
-          const total = unverifiedPayment.reduce(
-            (previousValue, currentValue) =>
-              previousValue + numberWithCommas(currentValue?.balance),
-            initialValue
-          );
-          owner.usdtBalance = total;
+          // const unverifiedPayment = data.result.filter(
+          //   (token, i) => token.hash !== payment.verified_payment[i]?.hash
+          // );
+          // const total = unverifiedPayment.reduce(
+          //   (previousValue, currentValue) =>
+          //     previousValue + numberWithCommas(currentValue?.balance),
+          //   initialValue
+          // );
+          // owner.usdtBalance = total;
+          owner.usdtBalance = initialValue;
           await owner.save();
           payment.verified_payment = data.result;
           payment.coinName = 'bnb';
@@ -234,13 +237,14 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
             coinName: 'bnb',
           });
 
-          const total = data.result.reduce(
-            (previousValue, currentValue) =>
-              previousValue + numberWithCommas(currentValue?.value),
-            initialValue
-          );
+          // const total = data.result.reduce(
+          //   (previousValue, currentValue) =>
+          //     previousValue + numberWithCommas(currentValue?.value),
+          //   initialValue
+          // );
 
-          owner.usdtBalance = total;
+          // owner.usdtBalance = total;
+          owner.usdtBalance = initialValue;
           await owner.save();
         }
       }
