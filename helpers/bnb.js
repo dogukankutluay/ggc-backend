@@ -141,7 +141,6 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
     user: { _id },
   } = req;
 
-  //helper func
   function numberWithCommas(x) {
     return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
   }
@@ -167,6 +166,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
               previousValue + numberWithCommas(currentValue?.balance),
             initialValue
           );
+          console.log(total);
           owner.usdtBalance = total;
           await owner.save();
           payment.verified_payment = data.data;
@@ -195,10 +195,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
       const depositsBnb = await DepositBnb.find({ userId: _id }).select(
         '-userId'
       );
-      //0xc83CBa50957365db810dC7C6E80646201F624878
-      // const { data } = await axios.get(
-      //   `https://api.bscscan.com/api?module=account&action=txlist&address=0xc4E470B18Db30798acC51c392ee6329f96075E39&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3`
-      // );
+
       const { data } = await axios.get(
         `https://api.bscscan.com/api?module=account&action=txlist&address=${depositsBnb[0]?.address}&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3`
       );
@@ -216,6 +213,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
         const owner = await User.findById({ _id });
         const payment = await Payment.findOne({ userId: _id, coinName: 'bnb' });
         const initialValue = owner.usdtBalance + newAmount;
+        console.log(initialValue);
         if (!!payment) {
           owner.usdtBalance = initialValue;
           await owner.save();
@@ -234,13 +232,6 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
         }
       }
     }
-    const findLogs = await Log.find({ userId: _id });
-    const total = findLogs.reduce((s, a) => s + a.usdt, 0);
-    const lastUser = await User.findById(_id);
-    const newUserUsdtBalance = lastUser.usdtBalance - total;
-    lastUser.usdtBalance = newUserUsdtBalance;
-    await lastUser.save();
-
     return successReturn(res, {});
   } catch (err) {
     console.log(err);
