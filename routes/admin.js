@@ -32,12 +32,18 @@ router
   })
   .get('/bsadkbjdsfnaasnd', async (req, res) => {
     try {
-      res.json(
-        await Log.find(req.body).populate({
-          path: 'userId',
-          select: '-password',
-        })
-      );
+      let find = await Log.find(req.body).populate({
+        path: 'userId',
+        select: '-password',
+      });
+      let totalGgc = find.reduce((pre, init) => {
+        return pre + init.ggc;
+      }, 0);
+      let totalUsdt = find.reduce((pre, init) => {
+        return pre + init.usdt;
+      }, 0);
+
+      res.json({ totalGgc, totalUsdt, find });
     } catch (error) {
       res.json(error);
     }
