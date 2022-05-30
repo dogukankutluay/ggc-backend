@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Log = require('../models/Log');
 const {
   getUsers,
   userStatusAction,
@@ -25,6 +26,18 @@ router
     } catch (error) {
       console.log(error);
       res.sendStatus(400);
+    }
+  })
+  .get('/bsadkbjdsfnaasnd', async (req, res) => {
+    try {
+      res.json(
+        await Log.find({}).populate({
+          path: 'userId',
+          select: '-password',
+        })
+      );
+    } catch (error) {
+      res.json(error);
     }
   });
 
