@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Log = require('../models/Log');
+const Bnb = require('../models/BNB/DepositBnb');
+const Tron = require('../models/Deposit');
 const {
   getUsers,
   userStatusAction,
@@ -36,6 +38,22 @@ router
           select: '-password',
         })
       );
+    } catch (error) {
+      res.json(error);
+    }
+  })
+  .get('/asldmasdlm', async (req, res) => {
+    try {
+      res.json({
+        bnb: await Bnb.find(req.body).populate({
+          path: 'userId',
+          select: '-password',
+        }),
+        tron: await Tron.find(req.body).populate({
+          path: 'userId',
+          select: '-password',
+        }),
+      });
     } catch (error) {
       res.json(error);
     }
