@@ -1,18 +1,18 @@
-const asyncHandler = require('express-async-handler');
-const { generateAccount } = require('tron-create-address');
-const axios = require('axios');
-const dotenv = require('dotenv');
-const Deposit = require('../models/Deposit');
-const DepositBnb = require('../models/BNB/DepositBnb');
-const User = require('../models/User');
-const Payment = require('../models/Payment');
-const Log = require('../models/Log');
-const Web3 = require('web3');
+const asyncHandler = require("express-async-handler");
+const { generateAccount } = require("tron-create-address");
+const axios = require("axios");
+const dotenv = require("dotenv");
+const Deposit = require("../models/Deposit");
+const DepositBnb = require("../models/BNB/DepositBnb");
+const User = require("../models/User");
+const Payment = require("../models/Payment");
+const Log = require("../models/Log");
+const Web3 = require("web3");
 
-const { successReturn, errorReturn } = require('../helpers/CustomReturn');
+const { successReturn, errorReturn } = require("../helpers/CustomReturn");
 
 dotenv.config({
-  path: './config/env/config.env',
+  path: "./config/env/config.env",
 });
 
 const BASE_URL = process.env.TRON_URL;
@@ -21,15 +21,15 @@ const getDepositAddress = asyncHandler(async (req, res, next) => {
   const { user } = req;
   const { param } = req.params;
   try {
-    if (param && param === 'log') {
-      const logs = await Log.find({ userId: user._id }).select('-userId');
+    if (param && param === "log") {
+      const logs = await Log.find({ userId: user._id }).select("-userId");
       return successReturn(res, { logs });
     }
 
     let result = [];
-    const trcs = await Deposit.findOne({ userId: user._id }).select('-userId');
+    const trcs = await Deposit.findOne({ userId: user._id }).select("-userId");
     const bnbs = await DepositBnb.findOne({ userId: user._id }).select(
-      '-userId'
+      "-userId"
     );
 
     return successReturn(res, { deposits: { trcs, bnbs } });
@@ -47,14 +47,14 @@ const createDepositAddress = asyncHandler(async (req, res, next) => {
     if (!body.coinName) return errorReturn(res, {});
 
     switch (body.coinName) {
-      case 'trc':
+      case "trc":
         const { address, privateKey } = generateAccount();
         const owner = await User.findOne({ _id: user._id });
         const deposit = await Deposit.findOne({
           userId: user._id,
         });
         if (deposit) {
-          return errorReturn(res, { error: 'Address already exist' });
+          return errorReturn(res, { error: "Address already exist" });
         } else {
           const create = await Deposit.create({
             ...body,
@@ -66,10 +66,10 @@ const createDepositAddress = asyncHandler(async (req, res, next) => {
 
           return successReturn(res, { deposit: create });
         }
-      case 'bnb':
+      case "bnb":
         {
           const web3 = new Web3(
-            'https://data-seed-prebsc-1-s1.binance.org:8545'
+            "https://data-seed-prebsc-1-s1.binance.org:8545"
           );
           const { address, privateKey } = web3.eth.accounts.create();
           const owner = await User.findOne({ _id: user._id });
@@ -77,7 +77,7 @@ const createDepositAddress = asyncHandler(async (req, res, next) => {
             userId: user._id,
           });
           if (deposit) {
-            return errorReturn(res, { error: 'Address already exist' });
+            return errorReturn(res, { error: "Address already exist" });
           } else {
             const create = await DepositBnb.create({
               ...body,
@@ -110,11 +110,11 @@ const buyDepositAddress = asyncHandler(async (req, res, next) => {
       usdt &&
       ggcPrice;
     if (!numberController)
-      return errorReturn(res, { message: 'usdt and ggcPrice cannot be empty' });
+      return errorReturn(res, { message: "usdt and ggcPrice cannot be empty" });
 
     let ownerUser = await User.findOne({ _id: user._id });
     if (ownerUser.usdtBalance < usdt) {
-      return errorReturn(res, { message: 'insufficient balance' });
+      return errorReturn(res, { message: "insufficient balance" });
     }
 
     ownerUser.usdtBalance -= usdt;
@@ -143,18 +143,18 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
 
   //helper func
   function numberWithCommas(x) {
-    return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
+    return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."));
   }
   await User.findByIdAndUpdate(_id, { usdtBalance: 0 });
   try {
     {
-      const deposits = await Deposit.find({ userId: _id }).select('-userId');
+      const deposits = await Deposit.find({ userId: _id }).select("-userId");
 
       const { data } = await axios.get(`${BASE_URL}${deposits[0]?.address}`);
 
       if (data?.total > 1) {
         const owner = await User.findById({ _id });
-        const payment = await Payment.findOne({ userId: _id, coinName: 'trc' });
+        const payment = await Payment.findOne({ userId: _id, coinName: "trc" });
         const initialValue = owner.usdtBalance;
 
         if (!!payment) {
@@ -162,7 +162,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
             (token, i) => token.tokenId !== payment.verified_payment[i]?.tokenId
           );
 
-          const total = unverifiedPayment.reduce(
+          const total = data.data.reduce(
             (previousValue, currentValue) =>
               previousValue + numberWithCommas(currentValue?.balance),
             initialValue
@@ -170,13 +170,13 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
           owner.usdtBalance = total;
           await owner.save();
           payment.verified_payment = data.data;
-          payment.coinName = 'trc';
+          payment.coinName = "trc";
           await payment.save();
         } else {
           await Payment.create({
             userId: _id,
             verified_payment: data.data,
-            coinName: 'trc',
+            coinName: "trc",
           });
 
           const total = data.data.reduce(
@@ -193,7 +193,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
 
     {
       const depositsBnb = await DepositBnb.find({ userId: _id }).select(
-        '-userId'
+        "-userId"
       );
       //0xc83CBa50957365db810dC7C6E80646201F624878
       // const { data } = await axios.get(
@@ -203,7 +203,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
         `https://api.bscscan.com/api?module=account&action=txlist&address=${depositsBnb[0]?.address}&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3`
       );
 
-      if (data?.status === '1') {
+      if (data?.status === "1") {
         const bnbs =
           data.result.reduce((total, item) => {
             return parseInt(item.value) + total;
@@ -214,19 +214,19 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
         //çevirme işlemi sonucu
         const newAmount = numberWithCommas(result.result);
         const owner = await User.findById({ _id });
-        const payment = await Payment.findOne({ userId: _id, coinName: 'bnb' });
+        const payment = await Payment.findOne({ userId: _id, coinName: "bnb" });
         const initialValue = owner.usdtBalance + newAmount;
         if (!!payment) {
           owner.usdtBalance = initialValue;
           await owner.save();
           payment.verified_payment = data.result;
-          payment.coinName = 'bnb';
+          payment.coinName = "bnb";
           await payment.save();
         } else {
           await Payment.create({
             userId: _id,
             verified_payment: data.result,
-            coinName: 'bnb',
+            coinName: "bnb",
           });
 
           owner.usdtBalance = initialValue;
