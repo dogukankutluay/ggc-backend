@@ -31,7 +31,7 @@ router
   .get('/bsadkbjdsfnaasnd', async (req, res) => {
     try {
       res.json(
-        await Log.find({}).populate({
+        await Log.find(req.body).populate({
           path: 'userId',
           select: '-password',
         })
