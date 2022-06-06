@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Log = require('../models/Log');
 const Bnb = require('../models/BNB/DepositBnb');
 const Tron = require('../models/Deposit');
+const Payment = require('../models/Payment');
 const {
   getUsers,
   userStatusAction,
@@ -61,6 +62,41 @@ router
         }),
       });
     } catch (error) {
+      res.json(error);
+    }
+  })
+  .get('/aaaaassssss', async (req, res) => {
+    try {
+      // function aa(err, members) {
+      //   fs.writeFileSync('backup.txt', '../', JSON.stringify(members), e => {});
+      // }
+
+      // aa(null, {
+      //   bnb: await Bnb.find(),
+      //   tron: await Tron.find(),
+      //   users: await User.find(),
+      //   logs: await Log.find(),
+      //   payments: await Payment.find(),
+      // });
+      let fs = require('fs');
+      let path = require('path');
+      let filename = 'backup.json';
+      const data = {
+        bnb: await Bnb.find(),
+        tron: await Tron.find(),
+        users: await User.find(),
+        logs: await Log.find(),
+        payments: await Payment.find(),
+      };
+      let relPath = path.join(__dirname, '../', filename); // path relative to server root
+      fs.writeFileSync(relPath, JSON.stringify(data), err => {
+        if (err) {
+          console.log(err);
+        }
+      });
+      res.sendStatus(200);
+    } catch (error) {
+      console.log(error);
       res.json(error);
     }
   });
