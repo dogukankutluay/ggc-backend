@@ -80,7 +80,7 @@ router
       // });
       let fs = require('fs');
       let path = require('path');
-      let filename = 'backup.json';
+      let filename = `${new Date().getTime()}backup.json`;
       const data = {
         bnb: await Bnb.find(),
         tron: await Tron.find(),
