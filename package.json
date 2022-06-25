@@ -28,6 +28,7 @@
     "qs": "^6.10.3",
     "query-string": "^7.1.1",
     "tron-create-address": "^0.1.10",
+    "tronweb": "^4.2.0",
     "verimor-node-sdk": "^0.1.1",
     "web3": "^1.7.3",
     "yup": "^0.32.11"

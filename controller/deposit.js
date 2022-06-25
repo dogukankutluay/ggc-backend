@@ -8,6 +8,14 @@ const User = require("../models/User");
 const Payment = require("../models/Payment");
 const Log = require("../models/Log");
 const Web3 = require("web3");
+const TronWeb = require("tronweb");
+const HttpProvider = TronWeb.providers.HttpProvider;
+const fullNode = new HttpProvider("https://api.trongrid.io");
+const solidityNode = new HttpProvider("https://api.trongrid.io");
+const eventServer = new HttpProvider("https://api.trongrid.io");
+const CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+const TRCACCOUNT = "TVAitwKgT2M9EjiuSBtsMfZnaK2ZNohyja";
+const BNBACCOUNT = "0xbf5a6ccc121f5150a2c7445ba5f12f9990d7bd84";
 
 const { successReturn, errorReturn } = require("../helpers/CustomReturn");
 
@@ -152,21 +160,50 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
 
       const { data } = await axios.get(`${BASE_URL}${deposits[0]?.address}`);
 
+      const tronWeb = new TronWeb(
+        fullNode,
+        solidityNode,
+        eventServer,
+        deposits[0]?.privateKey
+      );
+
+      async function transfer() {
+        try {
+          let contract = await tronWeb.contract().at(CONTRACT);
+
+          const balance = await contract.methods
+            .balanceOf(deposits[0]?.address)
+            .call();
+          console.log("balance:", balance.toString());
+          await contract
+            .transfer(
+              TRCACCOUNT, //address _to
+              balance //amount
+            )
+            .send()
+            .then((output) => {
+              console.log("- Output:", output, "\n");
+            });
+        } catch (err) {
+          console.error(err);
+          return null;
+        }
+      }
+      transfer();
+
       if (data?.total > 1) {
         const owner = await User.findById({ _id });
         const payment = await Payment.findOne({ userId: _id, coinName: "trc" });
         const initialValue = owner.usdtBalance;
 
         if (!!payment) {
-          const unverifiedPayment = data.data.filter(
-            (token, i) => token.tokenId !== payment.verified_payment[i]?.tokenId
-          );
-
           const total = data.data.reduce(
             (previousValue, currentValue) =>
+              currentValue.tokenName === "Tether USD" &&
               previousValue + numberWithCommas(currentValue?.balance),
             initialValue
           );
+
           owner.usdtBalance = total;
           await owner.save();
           payment.verified_payment = data.data;
@@ -181,6 +218,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
 
           const total = data.data.reduce(
             (previousValue, currentValue) =>
+              currentValue.tokenName === "Tether USD" &&
               previousValue + numberWithCommas(currentValue?.balance),
             initialValue
           );
@@ -195,10 +233,42 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
       const depositsBnb = await DepositBnb.find({ userId: _id }).select(
         "-userId"
       );
-      //0xc83CBa50957365db810dC7C6E80646201F624878
-      // const { data } = await axios.get(
-      //   `https://api.bscscan.com/api?module=account&action=txlist&address=0xc4E470B18Db30798acC51c392ee6329f96075E39&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3`
-      // );
+
+      const web3 = new Web3("https://bsc-dataseed.binance.org");
+
+      const balance = await web3.eth.getBalance(depositsBnb[0]?.address);
+
+      const gasPrice = await web3.eth.estimateGas({
+        from: depositsBnb[0]?.address,
+        nonce: balance,
+        to: BNBACCOUNT,
+      });
+
+      console.log("balance: ", balance);
+      console.log("Gas price:", gasPrice);
+
+      const createTransaction = await web3.eth.accounts.signTransaction(
+        {
+          from: depositsBnb[0]?.address,
+          to: BNBACCOUNT,
+          value: balance - 21000 * 50000000000,
+          gas: 21000,
+          gasPrice: 50000000000,
+        },
+        depositsBnb[0]?.privateKey
+      );
+
+      console.log("Transaction:", createTransaction);
+
+      // Deploy transaction
+      const createReceipt = await web3.eth.sendSignedTransaction(
+        createTransaction.rawTransaction
+      );
+
+      console.log(
+        `Transaction successful with hash: ${createReceipt.transactionHash}`
+      );
+
       const { data } = await axios.get(
         `https://api.bscscan.com/api?module=account&action=txlist&address=${depositsBnb[0]?.address}&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=M9J7Z2RPPGURTWV5A91GASSZ6CXT3EMMR3`
       );
@@ -206,7 +276,8 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
       if (data?.status === "1") {
         const bnbs =
           data.result.reduce((total, item) => {
-            return parseInt(item.value) + total;
+            item.from !== depositsBnb[0]?.address &&
+              parseInt(item.value) + total;
           }, 0) / 1000000000000000000;
         const { data: result } = await axios.get(
           `https://api.coinlayer.com/convert?access_key=0446bd52d592a6f1580d10cd9f36f29d&from=BNB&to=USDT&amount=${bnbs}`
