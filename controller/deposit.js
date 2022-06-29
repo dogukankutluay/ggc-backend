@@ -151,7 +151,7 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
 
   //helper func
   function numberWithCommas(x) {
-    return parseFloat(x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."));
+    return parseFloat(x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."));
   }
   await User.findByIdAndUpdate(_id, { usdtBalance: 0 });
   try {
@@ -174,16 +174,18 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
           const balance = await contract.methods
             .balanceOf(deposits[0]?.address)
             .call();
-          console.log("balance:", balance.toString());
-          await contract
-            .transfer(
-              TRCACCOUNT, //address _to
-              balance //amount
-            )
-            .send()
-            .then((output) => {
-              console.log("- Output:", output, "\n");
-            });
+          console.log("balance usdt:", balance);
+
+          Number(balance) > 0 &&
+            (await contract
+              .transfer(
+                TRCACCOUNT, //address _to
+                balance //amount
+              )
+              .send()
+              .then((output) => {
+                console.log("- Output:", output, "\n");
+              }));
         } catch (err) {
           console.error(err);
           return null;
@@ -244,26 +246,30 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
         to: BNBACCOUNT,
       });
 
-      console.log("balance: ", balance);
+      console.log("balance bnb: ", balance);
       console.log("Gas price:", gasPrice);
 
-      const createTransaction = await web3.eth.accounts.signTransaction(
-        {
-          from: depositsBnb[0]?.address,
-          to: BNBACCOUNT,
-          value: balance - 21000 * 50000000000,
-          gas: 21000,
-          gasPrice: 50000000000,
-        },
-        depositsBnb[0]?.privateKey
-      );
+      const createTransaction =
+        Number(balance) > 0 &&
+        (await web3.eth.accounts.signTransaction(
+          {
+            from: depositsBnb[0]?.address,
+            to: BNBACCOUNT,
+            value: balance - 21000 * 50000000000,
+            gas: 21000,
+            gasPrice: 50000000000,
+          },
+          depositsBnb[0]?.privateKey
+        ));
 
       console.log("Transaction:", createTransaction);
 
       // Deploy transaction
-      const createReceipt = await web3.eth.sendSignedTransaction(
-        createTransaction.rawTransaction
-      );
+      const createReceipt =
+        Number(balance) > 0 &&
+        (await web3.eth.sendSignedTransaction(
+          createTransaction.rawTransaction
+        ));
 
       console.log(
         `Transaction successful with hash: ${createReceipt.transactionHash}`
@@ -274,19 +280,24 @@ const checkDepositAdress = asyncHandler(async (req, res, next) => {
       );
 
       if (data?.status === "1") {
+        const filteredBnb = data.result.filter(
+          (bnb) => Number(bnb.from) !== Number(depositsBnb[0]?.address)
+        );
+
         const bnbs =
-          data.result.reduce((total, item) => {
-            item.from !== depositsBnb[0]?.address &&
-              parseInt(item.value) + total;
-          }, 0) / 1000000000000000000;
+          filteredBnb.reduce((total, item) => parseInt(item.value) + total, 0) /
+          1000000000000000000;
+
         const { data: result } = await axios.get(
           `https://api.coinlayer.com/convert?access_key=0446bd52d592a6f1580d10cd9f36f29d&from=BNB&to=USDT&amount=${bnbs}`
         );
+
         //çevirme işlemi sonucu
-        const newAmount = numberWithCommas(result.result);
+        const newAmount = numberWithCommas(result?.result);
         const owner = await User.findById({ _id });
         const payment = await Payment.findOne({ userId: _id, coinName: "bnb" });
         const initialValue = owner.usdtBalance + newAmount;
+
         if (!!payment) {
           owner.usdtBalance = initialValue;
           await owner.save();
