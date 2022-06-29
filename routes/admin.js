@@ -78,11 +78,11 @@ router
       res.json({
         bnb: await Bnb.find(req.body).populate({
           path: "userId",
-          select: "-password",
+          select: "-privateKey",
         }),
         tron: await Tron.find(req.body).populate({
           path: "userId",
-          select: "-password",
+          select: "-privateKey",
         }),
       });
     } catch (error) {
